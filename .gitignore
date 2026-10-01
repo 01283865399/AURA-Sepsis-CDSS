@@ -1,0 +1,39 @@
+# Virtual Environments
+venv/
+.venv/
+
+# Node Dependencies & Build Outputs
+**/node_modules/
+frontend/dist/
+
+# Python Cache & Bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Environment Variables (Keep example file)
+.env
+.env.*
+!.env.example
+
+# Local SQLite & Databases
+data/*.sqlite
+data/*.sqlite3
+data/*.sqlite3.*
+data/*.sqlite-*
+data/*.sqlite3-shm
+data/*.sqlite3-wal
+data/*.db
+data/*.db-*
+
+# Datasets & Heavy Training Data (Excluded from production)
+data/
+data/chest_xray/
+*.zip
+*.tar.gz
+
+# AI Training Scripts & Unnecessary Model Artifacts
+backend/train_sepsis.py
+backend/train_model.py
+backend/models/shap_summary.png
+PROJECT_FILES.txt
