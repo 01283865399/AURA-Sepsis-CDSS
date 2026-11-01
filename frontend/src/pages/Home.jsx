@@ -44,7 +44,7 @@ export default function Home() {
       <section className="home-bottom-grid">
         <Panel className="stat-panel"><span className="eyebrow">LOCAL WORKSPACE</span><strong>{MODULES.filter((module) => module.available).length}</strong><span>مسارات API متاحة · {MODULES.length} بطاقة في الكتالوج</span></Panel>
         <Panel className="stat-panel"><span className="eyebrow">BROWSER HISTORY</span><strong>{history.length}</strong><span>{t('checks')}</span></Panel>
-        <Panel className="availability-panel"><span className="eyebrow">NOT CONFIGURED</span><strong>{isEnglish ? 'Accounts and sign-in' : 'الدخول والحسابات'}</strong><span>{isEnglish ? 'No authentication/JWT endpoint is configured.' : 'لا يوجد endpoint مصادقة/JWT في الخادم الحالي.'}</span><Link to="/profile">{isEnglish ? 'Platform settings' : 'إعدادات المنصة'}</Link></Panel>
+        <Panel className="availability-panel"><span className="eyebrow">{isEnglish ? 'REQUIRED FOR AI CHAT' : 'مطلوب لاستخدام الشات'}</span><strong>{isEnglish ? 'Research account' : 'حساب بحثي'}</strong><span>{isEnglish ? 'Create an account or sign in before sending messages to the AI assistant.' : 'أنشئ حسابًا أو سجّل الدخول قبل إرسال رسائل إلى المساعد الذكي.'}</span><Link to="/register">{isEnglish ? 'Create research account' : 'إنشاء حساب بحثي'}</Link></Panel>
       </section>
     </div>
   );
