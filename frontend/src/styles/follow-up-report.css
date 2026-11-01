@@ -1,0 +1,24 @@
+.follow-up-report { display: grid; gap: 10px; margin: 14px 0; border-block: 1px solid var(--line); padding: 12px 0; }
+.follow-up-heading { display: flex; align-items: center; gap: 8px; }
+.follow-up-heading > span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 8px; background: var(--mint); color: #34725c; }
+.follow-up-heading h3 { margin: 1px 0 0; font-size: 12px; }
+.follow-up-heading .eyebrow { font-size: 8px; }
+.follow-up-summary { margin: 0; border-inline-start: 2px solid var(--teal); padding: 7px 9px; background: var(--surface-soft); color: var(--ink); font-size: 10px; line-height: 1.75; }
+.follow-up-actions { display: grid; gap: 6px; }
+.follow-up-actions h4 { margin: 0; font-size: 10px; }
+.follow-up-actions ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.follow-up-actions li { display: grid; grid-template-columns: 21px minmax(0, 1fr); align-items: start; gap: 7px; }
+.follow-up-actions li > span { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: var(--mint); color: #326e59; font: 700 9px 'JetBrains Mono', monospace; }
+.follow-up-actions li > p, .follow-up-emergency p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.7; }
+.follow-up-emergency { display: flex; align-items: flex-start; gap: 7px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.follow-up-emergency { border-color: #e8c9a5; background: #fff7eb; color: #906021; }
+:root[data-theme='dark'] .follow-up-emergency { border-color: #80633c; background: #342b20; color: #edca91; }
+.follow-up-emergency svg { flex: 0 0 auto; margin-top: 1px; }
+.follow-up-source { display: flex; align-items: center; color: var(--muted); font-size: 8px; line-height: 1.6; }
+.follow-up-source a { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; color: var(--teal); font-size: 9px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.follow-up-source a svg { opacity: .7; }
+@media (max-width: 520px) {
+  .follow-up-report { gap: 8px; }
+  .follow-up-summary { font-size: 9px; }
+  .follow-up-actions li > p, .follow-up-emergency p { font-size: 8px; }
+}

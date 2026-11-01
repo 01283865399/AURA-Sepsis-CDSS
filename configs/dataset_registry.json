@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "purpose": "Local research-only dataset registry",
+  "datasets": [
+    {
+      "name": "skin_lesions_8class",
+      "kind": "image",
+      "path": "skin_lesions_8class",
+      "layout": "class_directories",
+      "image_subdirectory": null,
+      "classes": {
+        "AK": 211,
+        "BCC": 229,
+        "BKL": 215,
+        "DF": 184,
+        "MEL": 252,
+        "NV": 261,
+        "SCC": 231,
+        "VASC": 180
+      },
+      "image_count": 1763,
+      "source_directory": "New data/archive (2)/Dataset"
+    },
+    {
+      "name": "isic_2019",
+      "kind": "image",
+      "path": "isic_2019",
+      "layout": "class_directories",
+      "image_subdirectory": null,
+      "classes": {
+        "AK": 824,
+        "BCC": 3323,
+        "BKL": 2624,
+        "DF": 239,
+        "MEL": 4522,
+        "NV": 12875,
+        "SCC": 628,
+        "VASC": 253
+      },
+      "image_count": 25288,
+      "source_directory": "New data/archive (6)/ISIC-2019"
+    },
+    {
+      "name": "covid19_radiography",
+      "kind": "image",
+      "path": "covid19_radiography",
+      "layout": "class_directories",
+      "image_subdirectory": "images",
+      "classes": {
+        "COVID": 3616,
+        "Lung_Opacity": 6012,
+        "Normal": 10192,
+        "Viral Pneumonia": 1345
+      },
+      "image_count": 21165,
+      "masks_preserved": true,
+      "source_directory": "New data/archive (3)/COVID-19_Radiography_Dataset"
+    },
+    {
+      "name": "tb_chest_radiography",
+      "kind": "image",
+      "path": "tb_chest_radiography",
+      "layout": "class_directories",
+      "image_subdirectory": null,
+      "classes": {
+        "Normal": 3500,
+        "Tuberculosis": 700
+      },
+      "image_count": 4200,
+      "source_directory": "New data/archive (4)/TB_Chest_Radiography_Database"
+    },
+    {
+      "name": "indian_liver_patient",
+      "kind": "tabular",
+      "path": "indian_liver_patient/ILPD.csv",
+      "target": "LABEL",
+      "features": [
+        "AGE",
+        "GENDER",
+        "TB",
+        "DB",
+        "ALK",
+        "SGPT",
+        "SGOT",
+        "TP",
+        "ALB",
+        "AG"
+      ],
+      "class_mapping": {
+        "1": "liver_disease",
+        "2": "no_liver_disease"
+      },
+      "class_counts": {
+        "liver_disease": 414,
+        "no_liver_disease": 165
+      },
+      "rows": 579,
+      "source_directory": "New data/Indian-Liver-Patient-UCI-Dataset-master"
+    }
+  ],
+  "duplicate_sources": [
+    {
+      "path": "duplicate_sources/tb_chest_radiography_archive5",
+      "duplicate_of": "tb_chest_radiography",
+      "files": 4203,
+      "verification": "All 4203 files have identical relative paths and SHA-256 hashes."
+    }
+  ]
+}

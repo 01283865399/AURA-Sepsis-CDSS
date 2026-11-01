@@ -1,0 +1,27 @@
+.legal-notice-banner { display: flex; align-items: center; gap: 12px; border-inline-start: 4px solid var(--primary); padding: 16px; }
+.legal-notice-banner svg { flex: 0 0 auto; color: #697400; }
+.legal-notice-banner p { margin: 0; color: var(--ink); font-size: 12px; line-height: 1.7; }
+.legal-section-list { display: grid; gap: 11px; }
+.legal-section-panel { padding: 18px; }
+.legal-section-panel h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 9px; font-size: 15px; }
+.legal-section-panel h2 svg { flex: 0 0 auto; color: var(--teal); }
+.legal-section-panel p, .legal-page .page-title-row p { max-width: 850px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.9; }
+.legal-disclaimer-note { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.legal-page-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.legal-page-links a, .auth-switch-link { color: var(--teal); font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+
+.auth-unavailable-panel { display: grid; justify-items: start; gap: 12px; padding: clamp(20px, 4vw, 38px); }
+.auth-unavailable-icon { width: 52px; height: 52px; display: grid; place-items: center; background: var(--primary); color: var(--ink); }
+.auth-unavailable-panel > .eyebrow { color: var(--muted); }
+.auth-unavailable-panel h2 { margin: 0; font-size: clamp(20px, 3vw, 28px); }
+.auth-unavailable-panel > p { max-width: 620px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.auth-unavailable-warning { display: flex; align-items: center; gap: 7px; color: #946b24; font-size: 11px; }
+.auth-unavailable-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.auth-unavailable-actions .button { min-height: 38px; }
+.auth-switch-link { margin-inline-start: 5px; }
+
+@media (max-width: 760px) {
+  .legal-section-panel { padding: 14px; }
+  .auth-unavailable-actions { align-items: flex-start; flex-direction: column; }
+  .auth-switch-link { margin-inline-start: 0; }
+}

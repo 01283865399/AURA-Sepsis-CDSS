@@ -1,0 +1,107 @@
+AURA - Project Overview and Development Status
+============================================
+
+1. Overview
+-----------
+AURA هو نظام دعم قرار طبي وبحثي يهدف إلى مساعد الباحثين والفرق الطبية في تقييم الحالات الطبية باستخدام نماذج تعلم آلي وتحليل بيانات بحثية. النظام يجمع بين واجهة مستخدم عربية/إنجليزية وبنية خدمات خلفية (FastAPI) تستقبل مدخلات مثل الأعراض، المؤشرات السريرية، صور الأشعة، وتقارير المختبرات، ثم تعرض تقديرات أو تصنيفات حسب النموذج المختار.
+
+لغة الموقع الرئيسية هي العربية، مع دعم إنجليزي من أجل التوافق الدولي، مع تركيز واضح على الاستعمال البحثي وليس التشخيص السريري النهائي.
+
+الموقع لا يعالج المرضى بشكل مباشر ولا يشرّع لاستخدامه كتشخيص طبي. هذا يجب أن يظل واضحاً في كل نقطة من التصميم والواجهة والوثائق، لأن الاعتماد الطبي الحقيقي يتطلب دراسة سريرية صارمة، توثيق جودة البيانات، والتحقق الميداني.
+
+2. What the project does
+------------------------
+النظام الحالي يقوم بما يلي:
+
+- عرض واجهة رئيسية للبحث الطبي والاستشارات الإكلينيكية البحثية.
+- نماذج وأدوات متعددة: أعراض، تقدير الإنتان، مؤشرات السكري، القلب، الكلى، أشعة صدر، صور الجلد، تصنيف ISIC 2019، COVID-19 radiography، TB chest radiography، DDXPlus، OCR لتقارير المختبرات.
+- صفحة Assistant: تفاعل مباشر مع أداة معينة وكتابة الأعراض أو إدخال القيم أو إرفاق صورة.
+- صفحات Dashboard: نظرة عامة على النماذج، الحالة، السجل المحلي، والنتائج الأخيرة.
+- صفحة Models: كتالوج النماذج وتحديد المسارات المتاحة.
+- صفحة History: سجل محلي للبيانات والنتائج في المتصفح.
+- صفحة Research Status: توضيح حالة التطوير والاعتماد والقيود.
+- صفحات About / Profile / Research / Patients: توثيق المشروع والحدود والبيئة.
+
+3. Current architecture
+-----------------------
+Frontend:
+- React + Vite
+- React Router
+- Zustand for app state
+- TanStack React Query for API health and async state
+- Framer Motion for transitions
+- Arabic/English localization
+
+Backend:
+- FastAPI
+- Multiple routers for research models
+- Endpoint dedicated for model service on port 8001
+- Legacy clinical and patient service on port 8000
+- SQLite local persistence for patient and clinical history
+
+Data flow:
+- User enters data in frontend
+- Frontend validates input and sends request to relevant API route
+- Backend model returns ranked results, summary, possible risk scores, or extracted OCR values
+- Results are displayed in UI and optionally stored locally
+
+4. Current status
+-----------------
+الموقع في وضع جيد جدًا كعرض توضيحي وبروتوكول بحثي أولي. يمكن استخدامه كـ demo داخل الفريق أو العرض للمستثمرين أو الجهات البحثية. ولكنه ليس جاهزًا تمامًا للاعتماد الطبي أو الاستخدام السريري الفعلي.
+
+الملامح الحالية:
+- لا تزال الواجهة مرنة جدًا وتهيئة تجريبية.
+- بعض المسارات والواجهات ليست متكاملة بنسبة 100% في جميع النماذج.
+- هناك خيارات مسدودة أو غير منشورة في API، وهي منطقية في fase البحثي.
+- النظام يفتقد إلى مستوى كبير من رقابة الجودة الطبية والوثائق التنظيمية اللازمة للاعتماد.
+
+5. Important limitation
+----------------------
+هذا المشروع لا يجوز النظر إليه كأداة طبية معتمدة أو كتشخيص أكاديمي حاسم. يجب أن يبقى ضمن فئة "Decision Support Research Prototype".
+
+الاعتماد الطبي الحقيقي يتطلب:
+- بيانات واقعية ومعتمدة من مصادر طبية موثوقة
+- تقييم خارج مجموعة التدريب (external validation)
+- تحليل التحيز (bias analysis)
+- تقييم الأداء على بيانات متعددة مستشفيات أو مجتمعات
+- مراجعة سريرية من الخبراء الطبيين
+- سياسات خصوصية وامتثال للمعايير التنظيمية
+- سجل تدقيق Audit Log
+- Human-in-the-loop review
+
+6. What is needed to evolve toward clinical readiness
+----------------------------------------------------
+1. Backend strengthening
+   - standardized schemas and validation
+   - unit/integration tests at API level
+   - strict model registry and versioning
+   - monitoring for misclassification and downstream drift
+   - confidence calibration and explainability
+   - secure and auditable data handling
+
+2. Frontend strengthening
+   - mature clinical UI/UX
+   - safer input validation and clinical warnings
+   - clear disclaimers and patient-safety messages
+   - better accessibility and responsive design
+   - improved diagnostic history and export/reporting
+
+3. Clinical governance
+   - medical review workflow
+   - clinician sign-off with role management
+   - audit trail and immutable logs
+   - model performance dashboards
+   - regulatory documentation and data governance
+
+4. Data governance and security
+   - PHI handling rules
+   - encryption at rest and in transit
+   - role-based access control
+   - de-identification
+   - retention and deletion policies
+
+7. Bottom line
+--------------
+AURA هو مشروع جيد ومناسب تمامًا كمنصة بحثية لدعم القرار الطبي، لكنه ليس جاهزًا للاعتماد الطبي الكامل في حالته الحالية. يجب أن يمر عبر مرحلة تطوير قوية في الباك إند والفرونت، بالإضافة إلى هيكلية تقييم سريرية صارمة.
+
+النظام الحالي يحوز على أساس قوي من البنية والواجهة، لكنه يحتاج إلى تطوير منظم كخطوة انتقالية من prototype إلى clinical-grade decision support system.

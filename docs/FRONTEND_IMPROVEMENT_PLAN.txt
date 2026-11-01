@@ -1,0 +1,184 @@
+Frontend Improvement Plan for AURA
+==================================
+
+1. Purpose
+----------
+This document defines how to improve the frontend so the AURA platform moves from a strong research demo toward a more credible, trustworthy, and clinically-aware presentation layer.
+
+The frontend is not only a design layer. It is part of the clinical safety system. Every label, warning, button, data entry field, and message influences how users interpret model output and risk.
+
+2. Current frontend status
+--------------------------
+The current frontend already demonstrates a strong foundation:
+- Arabic-first interface with English alternative
+- clear navigation structure
+- dashboard page with metrics and history
+- model catalog and module-based flow
+- assistant-style interaction for symptom and model analysis
+- research status page that explains risks and limitations
+- modern design built with React, Vite, and Tailwind-inspired styling
+
+This is suitable for a research showcase and internal demonstration. However, it still needs stronger trust-building elements to be considered for medical exposure or institutional approval.
+
+3. Main frontend weaknesses
+---------------------------
+A. Clinical presentation is not strong enough
+- Some messages still feel like a research dashboard rather than a clinical-grade decision support interface
+- There are areas where information appears more as app functionality than as patient-safety guidance
+
+B. Risk messaging is not enough
+- The app should visibly separate "model output" from "medical interpretation"
+- The user must be reminded that results are not diagnosis and require physician review
+
+C. Input validation needs stronger UX
+- Users may enter values incorrectly or incompletely without enough feedback
+- Some tools need clearer examples and invalid-field messaging
+- The form should guide users to safe clinical data entry rather than teaching only an API contract
+
+D. Accessibility is not yet medical-grade
+- Need stronger keyboard support, focus order, semantic labeling, contrast checks, and layout checks
+- For a medical tool, accessibility is not optional
+
+E. Mobile and tablet responsiveness need deeper validation
+- Research and clinical workflows often occur in various device sizes and settings
+- The dashboard and form layouts should be stress-tested on smaller screens and touch input
+
+F. Safety and trust components are missing
+- The interface should clearly state:
+  - what the model does
+  - what it does not do
+  - when it should not be used
+  - who must review results
+
+G. Clinical workflow is not yet structured enough
+- A real decision-support system should show a sequence like:
+  1. input collection
+  2. uncertainty review
+  3. model output
+  4. clinician interpretation
+  5. documented recommendation or follow-up
+
+4. Required frontend improvements
+---------------------------------
+A. Better clinical safety design
+- Add prominent disclaimers in the main workflow and result cards
+- Use color-coded risk states but avoid implying medical certainty
+- Show explicit labels such as:
+  - "Research output only"
+  - "Not a diagnosis"
+  - "Requires clinical review"
+  - "Confidence low"
+
+B. Stronger form UX
+- Provide inline validation as the user types
+- Show field-level hints and examples
+- Group fields logically by clinical domain
+- Highlight required fields and optional fields separately
+- Show preview of entered values before sending
+
+C. Better result presentation
+- Each result card should display:
+  - top prediction
+  - confidence indicator
+  - uncertainty indicator
+  - whether clinical review is required
+  - model version
+  - timestamp
+- Results must not be presented as a definite diagnosis
+
+D. Clearer workflow states
+- Before send: validate and summarize the request
+- During request: visible loading, progress, and cancellation state
+- After request: result status, confidence, next action, and safe message
+- Error states: human-readable and clear, with recovery actions
+
+E. Professional design system
+- Build a consistent spacing system
+- Define a stronger palette with clear semantics: neutral, warning, success, danger, info
+- Use consistent typography hierarchy and status chips
+- Keep cards, tables, and prompts visually coherent
+
+F. Accessibility and compliance readiness
+- Ensure keyboard navigation for all menu and form elements
+- Add clear focus styles to all controls
+- Maintain minimum contrast ratios to support readability
+- Add screen-reader labels and semantics to critical UI sections
+- Test with keyboard-only and assistive technologies
+
+G. History and reporting improvements
+- Improve the saved history so it is clear and exportable
+- Add search, filters, and date sorting
+- Add a readable report view for each specific test
+- Separate local browser history from formal medical records
+
+H. Pattern of trust-building text
+- Each module should explicitly state:
+  - what input is required
+  - what the endpoint is designed for
+  - when to use or avoid it
+  - how to interpret the output
+
+5. High-priority frontend upgrades
+----------------------------------
+1. Add a universal clinical safety banner
+   - visible on every page or at least on every decision-support page
+
+2. Add result cards with risk labels and disclaimers
+   - not just a numeric score
+
+3. Create a standard error and warning pattern
+   - loading
+   - invalid user input
+   - API issue
+   - model low-confidence case
+   - unresolved decision support scenario
+
+4. Create a clinical workflow wizard for major module types
+   - Step 1: enter data
+   - Step 2: review data summary
+   - Step 3: submit
+   - Step 4: review risk and next actions
+
+5. Rework the dashboard into a trusted metrics panel
+   - include process metrics and model status
+   - separate operational status from clinical meaning
+
+6. Improve responsiveness and mobile layout
+   - ensure all pages remain usable on smaller screens
+
+7. Strengthen the patient-safety language throughout the UI
+   - no claim of diagnosis
+   - no direct clinical recommendation without clinician review
+
+8. Add audit and traceability in UI
+   - each result should include model version and timestamp in a clear panel
+
+9. Add export/report print support for clinician review
+   - PDF summary, shareable report, or structured export
+
+10. Add controlled review mode for medical teams
+    - this is important for future institutional adoption
+
+6. Recommended UX redesign priorities
+-------------------------------------
+The most important design improvements are as follows:
+
+1. Default screen should feel like a clinical decision-support environment, not a generic app
+2. Every action should communicate uncertainty and caution
+3. Forms should guide correct clinical data entry
+4. Results should show confidence and patient-safety context
+5. History should feel reviewable and auditable
+6. Every page should clearly distinguish research from clinical authority
+
+7. Final assessment
+-------------------
+The frontend is already visually attractive and organized, and the overall structure is promising. It is very strong as a research showcase and prototype.
+
+However, to become acceptable for medical display and dependence on medical results, the interface must be elevated with:
+- stronger clinical safety language
+- stronger communication of uncertainty
+- more rigorous validation and UX guardrails
+- better accessibility and mobile reliability
+- a clearer professional workflow for interpretation and review
+
+If these improvements are implemented, the frontend would be far closer to a credible and display-ready medical decision-support platform.

@@ -1,5 +1,9 @@
 from datetime import datetime, timezone
 from io import BytesIO
+import base64
+import hashlib
+import hmac
+import json
 import os
 import random
 import re
@@ -7,20 +11,24 @@ import sqlite3
 import logging
 from pathlib import Path
 import tempfile
-from typing import Literal
+from typing import Any, Literal
+from urllib.error import HTTPError, URLError
+from urllib.request import Request as UrlRequest, urlopen
 from uuid import uuid4
 from xml.sax.saxutils import escape
 
-from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import numpy as np
+from dotenv import load_dotenv
 from .sepsis_service import ModelNotApprovedError, SepsisService
 
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 DATA_DIR = PROJECT_ROOT / "data"
 MODEL_DIR = BACKEND_DIR / "models"
+load_dotenv(PROJECT_ROOT / ".env")
 
 os.environ.setdefault(
     "MPLCONFIGDIR",
@@ -69,6 +77,7 @@ app.add_middleware(
         for origin in os.environ.get(
             "SEPSIS_CORS_ORIGINS",
             "http://localhost:5173,http://127.0.0.1:5173,"
+            "http://localhost:5174,http://127.0.0.1:5174,"
             "http://localhost:4173,http://127.0.0.1:4173",
         ).split(",")
         if origin.strip()
@@ -81,6 +90,445 @@ app.add_middleware(
 sepsis_service: SepsisService | None = None
 logger = logging.getLogger(__name__)
 _supabase_client = None
+AUTH_DB = DATA_DIR / "auth.sqlite3"
+AUTH_ROLES = {"admin", "doctor", "researcher", "nurse", "viewer"}
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=6000)
+
+
+class GeminiChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=20)
+    tool_results: list[dict[str, Any]] = Field(default_factory=list, max_length=5)
+    patient_id: str | None = Field(default=None, max_length=64)
+    patient_context_consent: bool = False
+
+
+class GeminiChatResponse(BaseModel):
+    message: str
+    model: str
+    grounded: bool = True
+    research_only: bool = True
+    sources: list[str] = []
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
+    password: str = Field(min_length=12, max_length=128)
+    role: Literal["researcher", "viewer"] = "viewer"
+
+
+class AdminCreateUserRequest(RegisterRequest):
+    role: Literal["admin", "doctor", "researcher", "nurse", "viewer"] = "viewer"
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=80)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    username: str
+    role: str
+
+
+PROJECT_KNOWLEDGE = """
+This is AURA Sepsis AI, a research-only clinical decision-support workspace.
+It contains exploratory routes for sepsis risk estimation, chest X-ray screening,
+symptom ranking, DDXPlus differential diagnosis, diabetes, heart, kidney and
+liver indicators, skin-lesion image classification, COVID-19 and TB radiography,
+and laboratory-report OCR. Model results are estimates or screening signals,
+not diagnoses, treatment instructions, triage decisions, or calibrated
+individual probabilities. Qualified clinicians must review all outputs and
+local protocols always take priority.
+
+The project uses a legacy clinical API and a separate model API. Browser history
+is local to the current browser and is not a medical record. Do not request or
+repeat names, identifiers, full medical records, secrets, or images of real
+patients. Do not claim that a model is clinically validated, approved, or able
+to rule out disease. If a user describes an emergency, advise contacting local
+emergency services or a qualified clinician rather than making a diagnosis.
+Answer in the user's language. Clearly distinguish project-grounded facts from
+general medical education, and say when the project data does not support an
+answer.
+""".strip()
+
+
+def _auth_connection() -> sqlite3.Connection:
+    AUTH_DB.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(AUTH_DB, timeout=10)
+    connection.row_factory = sqlite3.Row
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY, password_hash TEXT NOT NULL,
+            role TEXT NOT NULL, created_at TEXT NOT NULL
+        )"""
+    )
+    connection.execute(
+        """CREATE TABLE IF NOT EXISTS ai_audit_log (
+            id TEXT PRIMARY KEY, username TEXT NOT NULL, role TEXT NOT NULL,
+            patient_id TEXT, used_patient_context INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+        )"""
+    )
+    admin_username = os.environ.get("ADMIN_USERNAME", "").strip()
+    admin_password = os.environ.get("ADMIN_PASSWORD", "")
+    if admin_username and len(admin_password) >= 12 and not connection.execute(
+        "SELECT 1 FROM users WHERE username = ?", (admin_username,)
+    ).fetchone():
+        connection.execute(
+            "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'admin', ?)",
+            (admin_username, _password_hash(admin_password), datetime.now(timezone.utc).isoformat()),
+        )
+    connection.commit()
+    return connection
+
+
+def _password_hash(password: str, salt: bytes | None = None) -> str:
+    salt = salt or os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 310_000)
+    return f"pbkdf2_sha256$310000${base64.urlsafe_b64encode(salt).decode()}${base64.urlsafe_b64encode(digest).decode()}"
+
+
+def _password_matches(password: str, stored: str) -> bool:
+    try:
+        algorithm, rounds, salt, digest = stored.split("$")
+        candidate = hashlib.pbkdf2_hmac(
+            "sha256", password.encode(), base64.urlsafe_b64decode(salt), int(rounds)
+        )
+        return algorithm == "pbkdf2_sha256" and hmac.compare_digest(
+            candidate, base64.urlsafe_b64decode(digest)
+        )
+    except (ValueError, TypeError):
+        return False
+
+
+def _token_encode(username: str, role: str) -> str:
+    header = {"alg": "HS256", "typ": "JWT"}
+    payload = {"sub": username, "role": role, "exp": int(datetime.now(timezone.utc).timestamp()) + 8 * 3600}
+    encoded = lambda value: base64.urlsafe_b64encode(json.dumps(value, separators=(",", ":")).encode()).rstrip(b"=").decode()
+    body = f"{encoded(header)}.{encoded(payload)}"
+    secret = os.environ.get("AUTH_JWT_SECRET", "").strip()
+    if len(secret) < 32:
+        raise HTTPException(status_code=503, detail="AUTH_JWT_SECRET must contain at least 32 characters.")
+    signature = hmac.new(secret.encode(), body.encode(), hashlib.sha256).digest()
+    return f"{body}.{base64.urlsafe_b64encode(signature).rstrip(b'=').decode()}"
+
+
+def _current_user(authorization: str | None = Header(default=None)) -> dict[str, str]:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication is required.")
+    try:
+        body, encoded_signature = authorization[7:].rsplit(".", 1)
+        secret = os.environ.get("AUTH_JWT_SECRET", "").strip()
+        if len(secret) < 32:
+            raise ValueError("JWT secret is not configured")
+        expected = base64.urlsafe_b64encode(hmac.new(secret.encode(), body.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+        if not hmac.compare_digest(expected, encoded_signature):
+            raise ValueError("Invalid signature")
+        payload = json.loads(base64.urlsafe_b64decode(body.split(".")[1] + "=="))
+        if payload["exp"] < int(datetime.now(timezone.utc).timestamp()) or payload["role"] not in AUTH_ROLES:
+            raise ValueError("Expired or invalid token")
+        return {"username": payload["sub"], "role": payload["role"]}
+    except (ValueError, KeyError, IndexError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=401, detail="Invalid or expired authentication token.") from error
+
+
+def _retrieve_project_context(query: str, limit: int = 5) -> tuple[str, list[str]]:
+    content_root = PROJECT_ROOT / "data" / "medical_content"
+    candidates: list[tuple[int, str, str]] = []
+    sources = (
+        ("final/conditions.json", "conditions"),
+        ("conditions/all_conditions.json", "conditions"),
+        ("symptoms/all_symptoms.json", "symptoms"),
+        ("medications/interactions.json", "interactions"),
+        ("guidelines/who_guidelines.json", "WHO guidelines"),
+        ("guidelines/cdc_guidelines.json", "CDC guidelines"),
+        ("emergency/red_flags.json", "red flags"),
+        ("emergency/triage_rules.json", "triage rules"),
+        ("../models/symptoms/model_metadata.json", "symptoms model metadata"),
+        ("../models/heart/xgboost_evaluation.json", "heart model evaluation"),
+        ("../models/kidney/xgboost_evaluation.json", "kidney model evaluation"),
+        ("../docs/medical_data/DATA_SOURCES.md", "project data sources"),
+        ("../New folder/archive (2)/healthcare_rag_dataset.csv", "healthcare RAG dataset"),
+    )
+    terms = set(re.findall(r"[a-z0-9_]{3,}", query.lower()))
+    for relative, label in sources:
+        path = PROJECT_ROOT / relative[3:] if relative.startswith("../") else content_root / relative
+        if not path.exists():
+            continue
+        try:
+            raw = path.read_text(encoding="utf-8-sig")
+            try:
+                document = json.loads(raw)
+                text = json.dumps(document, ensure_ascii=False)
+            except json.JSONDecodeError:
+                text = raw
+        except (OSError, UnicodeError):
+            logger.warning("Skipping unreadable RAG source %s", path)
+            continue
+        score = sum(text.lower().count(term) for term in terms)
+        if score:
+            candidates.append((score, label, text[:4000]))
+    candidates.sort(reverse=True)
+    selected = candidates[:limit]
+    return "\n\n".join(f"[{label}]\n{snippet}" for _, label, snippet in selected), [label for _, label, _ in selected]
+
+
+def _deidentified_patient_context(patient_id: str) -> str:
+    record = get_patient(patient_id)
+    return (
+        f"De-identified patient context: age={record.age}, gender={record.gender}, "
+        f"bed context omitted, risk_tier={record.risk_tier}, vital_signs={record.vital_signs}."
+    )
+
+
+def _gemini_api_key() -> str:
+    return os.environ.get("GEMINI_API_KEY", "").strip()
+
+
+MEDICAL_AGENT_TOOL = {
+    "type": "function",
+    "name": "analyze_medical_data",
+    "description": (
+        "Use this tool when the user requests analysis of an X-ray image, "
+        "symptoms, or vital-sign measurements."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "analysis_type": {
+                "type": "string",
+                "enum": ["xray", "symptoms", "sepsis", "diabetes"],
+                "description": "The requested medical analysis type.",
+            },
+            "file_attached": {
+                "type": "boolean",
+                "description": "Whether the user attached an image.",
+            },
+            "clinical_notes": {
+                "type": "string",
+                "description": "Symptoms, measurements, or other user-provided notes.",
+            },
+        },
+        "required": ["analysis_type", "file_attached", "clinical_notes"],
+    },
+}
+
+MEDICAL_AGENT_INSTRUCTIONS = """
+You are a compassionate and professional Arabic medical AI assistant for a
+research-only clinical decision-support platform. When you receive results
+from analyze_medical_data, do not merely list percentages or measurements:
+explain the highest signals in simple, reassuring medical language, state what
+they may indicate and what they do not prove, and ask one or two relevant
+follow-up questions (for example, whether the user has cough or fever).
+Always say that model outputs are screening signals, not a final diagnosis,
+and never claim that a patient is stable, healthy, or ruled out based on a
+model result alone. Do not prescribe treatment. Respond in Arabic unless the
+user clearly asks for another language, and use readable Markdown.
+""".strip()
+
+
+def _function_call_from_response(result: dict[str, Any]) -> dict[str, Any] | None:
+    candidates: list[dict[str, Any]] = []
+    output = result.get("output")
+    if isinstance(output, list):
+        candidates.extend(item for item in output if isinstance(item, dict))
+    steps = result.get("steps")
+    if isinstance(steps, list):
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            candidates.append(step)
+            content = step.get("content")
+            if isinstance(content, list):
+                candidates.extend(item for item in content if isinstance(item, dict))
+    for item in candidates:
+        item_type = item.get("type")
+        if item_type in {"function_call", "functionCall"} or "functionCall" in item:
+            call = item.get("functionCall", item)
+            return {
+                "id": item.get("id") or item.get("call_id") or call.get("id", "medical-data-call"),
+                "name": call.get("name") or item.get("name"),
+                "arguments": call.get("arguments") or call.get("args") or item.get("arguments") or {},
+            }
+    return None
+
+
+def _gemini_text(result: dict[str, Any]) -> str:
+    text = result.get("output_text", "")
+    if not text:
+        output = result.get("output")
+        if isinstance(output, list):
+            text = " ".join(
+                str(part.get("text", ""))
+                for part in output
+                if isinstance(part, dict) and part.get("type") in {"text", "output_text"}
+            )
+    if not text:
+        for step in reversed(result.get("steps", [])):
+            if isinstance(step, dict) and step.get("type") == "model_output":
+                text = " ".join(
+                    part.get("text", "")
+                    for part in step.get("content", [])
+                    if isinstance(part, dict)
+                )
+                if text:
+                    break
+    return str(text).strip()
+
+
+def _gemini_request(api_key: str, model: str, payload: dict[str, Any]) -> dict[str, Any]:
+    request = UrlRequest(
+        "https://generativelanguage.googleapis.com/v1beta/interactions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=120) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        logger.warning("Gemini request failed with HTTP %s: %s", error.code, detail[:500])
+        raise HTTPException(status_code=502, detail="Gemini could not complete the request.") from error
+    except URLError as error:
+        logger.warning("Gemini request failed: %s", error)
+        raise HTTPException(status_code=502, detail="Gemini is unreachable right now.") from error
+    except (TimeoutError, json.JSONDecodeError) as error:
+        logger.warning("Invalid Gemini response: %s", error)
+        raise HTTPException(status_code=502, detail="Gemini returned an invalid response.") from error
+
+
+def _tool_result_fallback(tool_results: list[dict[str, Any]]) -> str:
+    """Keep the analyzed result visible if the explanatory model is unavailable."""
+    parts: list[str] = [
+        "اكتمل التحليل، لكن تعذر توليد الشرح التفاعلي من Gemini.",
+        "هذه مخرجات الفحص الآلي وليست تشخيصاً نهائياً؛ راجع الصورة أو البيانات الأصلية مع مختص.",
+    ]
+    for item in tool_results:
+        result = item.get("result")
+        if not isinstance(result, dict):
+            continue
+        summary = result.get("clinical_summary") or result.get("message")
+        if isinstance(summary, str) and summary.strip():
+            parts.append(summary.strip())
+        scores = result.get("target_scores")
+        if isinstance(scores, dict) and scores:
+            ordered = sorted(
+                (
+                    (str(name), float(value))
+                    for name, value in scores.items()
+                    if isinstance(value, (int, float))
+                ),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            if ordered:
+                parts.append(
+                    "**أعلى الإشارات التشغيلية:**\n"
+                    + "\n".join(f"- {name}: {score:.1f}/100" for name, score in ordered[:3])
+                )
+        recommendations = result.get("recommendations")
+        if isinstance(recommendations, list):
+            verified = [str(value).strip() for value in recommendations if str(value).strip()]
+            if verified:
+                parts.append("**الخطوات المقترحة:**\n" + "\n".join(f"- {value}" for value in verified))
+    return "\n\n".join(parts)
+
+
+def _call_gemini(
+    messages: list[ChatMessage],
+    context: str,
+    tool_results: list[dict[str, Any]] | None = None,
+) -> tuple[str, str]:
+    api_key = _gemini_api_key()
+    if not api_key:
+        if tool_results:
+            logger.warning("Gemini is not configured; returning the supplied medical tool result.")
+            return _tool_result_fallback(tool_results), os.environ.get("GEMINI_MODEL", "unavailable").strip()
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini is not configured. Set GEMINI_API_KEY in the backend environment.",
+        )
+
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
+    transcript = "\n".join(
+        f"{'User' if item.role == 'user' else 'Assistant'}: {item.content}"
+        for item in messages
+    )
+    supplied_results = tool_results or []
+    if supplied_results:
+        transcript += (
+            "\n\nMedical tool results from the application (explain these; "
+            "do not invent missing values):\n"
+            + json.dumps(supplied_results, ensure_ascii=False)
+        )
+    payload = {
+        "model": model,
+        "system_instruction": f"{PROJECT_KNOWLEDGE}\n\n{MEDICAL_AGENT_INSTRUCTIONS}",
+        "tools": [MEDICAL_AGENT_TOOL],
+        "input": (
+            f"Project data context:\n{context}\n\nConversation:\n{transcript}\n\n"
+            "Answer the last user message only."
+        ),
+    }
+    try:
+        result = _gemini_request(api_key, model, payload)
+    except HTTPException:
+        if supplied_results:
+            logger.warning("Gemini failed before explaining a medical tool result; using raw-result fallback.")
+            return _tool_result_fallback(supplied_results), model
+        raise
+    function_call = _function_call_from_response(result)
+    if function_call and function_call.get("name") == "analyze_medical_data":
+        function_result = (
+            {"status": "results_received", "tool_results": supplied_results}
+            if supplied_results
+            else {
+                "status": "waiting_for_upload",
+                "message": (
+                    "Ask the user to upload the image or enter the clinical "
+                    "measurements using the dedicated chat controls. No analysis "
+                    "was executed by this function call."
+                ),
+            }
+        )
+        follow_up_payload = {
+            **payload,
+            "input": [
+                {"role": "user", "content": payload["input"]},
+                {
+                    "type": "function_call",
+                    "id": function_call["id"],
+                    "name": function_call["name"],
+                    "arguments": function_call["arguments"],
+                },
+                {
+                    "type": "function_result",
+                    "call_id": function_call["id"],
+                    "result": function_result,
+                },
+            ],
+        }
+        try:
+            result = _gemini_request(api_key, model, follow_up_payload)
+        except HTTPException:
+            logger.warning("Gemini explanation failed after medical tool result; using raw-result fallback.")
+            return _tool_result_fallback(supplied_results), model
+
+    text = _gemini_text(result)
+    if not text:
+        if supplied_results:
+            logger.warning("Gemini returned no explanation after medical tool result; using raw-result fallback.")
+            return _tool_result_fallback(supplied_results), model
+        logger.warning("Gemini response did not contain text: %s", result)
+        raise HTTPException(status_code=502, detail="Gemini returned an empty answer.")
+    return text, model
 
 
 def get_sepsis_service() -> SepsisService:
@@ -1023,6 +1471,78 @@ def export_patient_report_pdf(request: PatientReportExportRequest) -> Response:
             "Content-Disposition": 'attachment; filename="Sepsis_Patient_Report.pdf"'
         },
     )
+
+
+@app.post("/api/auth/register", response_model=AuthResponse, status_code=201)
+def register(request: RegisterRequest) -> AuthResponse:
+    connection = _auth_connection()
+    try:
+        if connection.execute("SELECT 1 FROM users WHERE username = ?", (request.username,)).fetchone():
+            raise HTTPException(status_code=409, detail="Username is already registered.")
+        connection.execute(
+            "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+            (request.username, _password_hash(request.password), request.role, datetime.now(timezone.utc).isoformat()),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    return AuthResponse(access_token=_token_encode(request.username, request.role), username=request.username, role=request.role)
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login(request: LoginRequest) -> AuthResponse:
+    connection = _auth_connection()
+    try:
+        row = connection.execute("SELECT * FROM users WHERE username = ?", (request.username,)).fetchone()
+    finally:
+        connection.close()
+    if not row or not _password_matches(request.password, row["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    return AuthResponse(access_token=_token_encode(row["username"], row["role"]), username=row["username"], role=row["role"])
+
+
+@app.post("/api/auth/users", response_model=AuthResponse, status_code=201)
+def admin_create_user(
+    request: AdminCreateUserRequest,
+    user: dict[str, str] = Depends(_current_user),
+) -> AuthResponse:
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can assign elevated roles.")
+    connection = _auth_connection()
+    try:
+        if connection.execute("SELECT 1 FROM users WHERE username = ?", (request.username,)).fetchone():
+            raise HTTPException(status_code=409, detail="Username is already registered.")
+        connection.execute(
+            "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+            (request.username, _password_hash(request.password), request.role, datetime.now(timezone.utc).isoformat()),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    return AuthResponse(access_token=_token_encode(request.username, request.role), username=request.username, role=request.role)
+
+
+@app.post("/api/ai/chat", response_model=GeminiChatResponse)
+def ai_chat(request: GeminiChatRequest, user: dict[str, str] = Depends(_current_user)) -> GeminiChatResponse:
+    if request.patient_id and user["role"] not in {"admin", "doctor", "nurse", "researcher"}:
+        raise HTTPException(status_code=403, detail="Your role cannot use patient context.")
+    if request.patient_id and not request.patient_context_consent:
+        raise HTTPException(status_code=400, detail="Explicit patient-context consent is required.")
+    knowledge, sources = _retrieve_project_context(request.messages[-1].content)
+    context = knowledge or "No matching reviewed project source was found."
+    if request.patient_id:
+        context += "\n\n" + _deidentified_patient_context(request.patient_id)
+    message, model = _call_gemini(request.messages, context, request.tool_results)
+    connection = _auth_connection()
+    try:
+        connection.execute(
+            "INSERT INTO ai_audit_log VALUES (?, ?, ?, ?, ?, ?)",
+            (str(uuid4()), user["username"], user["role"], request.patient_id, int(bool(request.patient_id)), datetime.now(timezone.utc).isoformat()),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    return GeminiChatResponse(message=message, model=model, sources=sources)
 
 
 @app.get("/")

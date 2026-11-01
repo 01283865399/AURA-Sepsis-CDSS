@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import PatientFormModal from './PatientFormModal';
 import './pages.css';
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_CLINICAL_API_URL || 'http://127.0.0.1:8000';
 
 export default function PatientsDirectory() {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function PatientsDirectory() {
   return (
     <main className="directory-page">
       <header className="directory-header">
-        <Link className="directory-brand" to="/"><span><Users size={19} /></span>AURA <b>SEPSIS AI</b></Link>
+        <Link className="directory-brand" to="/"><span><Users size={19} /></span>MEDIMIND <b>AI</b></Link>
         <div className="directory-header-actions">
           <Link className="directory-home-link" to="/"><ArrowLeft size={16} /> Home</Link>
           <button className="directory-primary-button directory-add-button" type="button" onClick={() => setShowAddPatient(true)}><Plus size={17} /> Add Patient</button>
@@ -69,7 +69,7 @@ export default function PatientsDirectory() {
           <section className="directory-empty"><span><Users size={25} /></span><h2>No patients yet</h2><p>Add a patient record to open a patient-specific assessment dashboard.</p><button className="directory-primary-button" type="button" onClick={() => setShowAddPatient(true)}><Plus size={17} /> Add Patient</button></section>
         ) : null}
       </section>
-      <footer className="directory-footer">AURA Sepsis AI · Research decision-support workspace</footer>
+      <footer className="directory-footer">MediMind AI · Research decision-support workspace</footer>
       {showAddPatient && <PatientFormModal onClose={() => setShowAddPatient(false)} onCreated={(patient) => navigate(`/patients/${patient.patient_id}`)} />}
     </main>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import './dashboard.css';
 import {
   Activity,
@@ -28,10 +28,11 @@ import {
   X,
 } from 'lucide-react';
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_CLINICAL_API_URL || 'http://127.0.0.1:8000';
 
 const AR_TRANSLATIONS = {
-  'AURA Sepsis AI dashboard': 'لوحة نظام AURA للذكاء الاصطناعي للإنتان',
+  'MediMind AI dashboard': 'لوحة MediMind AI لدعم القرار البحثي',
+  'Use and validation status': 'حالة الاستخدام والاعتماد',
   'Clinical decision support': 'دعم القرار السريري',
   'Connecting to API': 'جارٍ الاتصال بواجهة API',
   Online: 'متصل',
@@ -294,7 +295,7 @@ const AR_TRANSLATIONS = {
   'Any model estimate from OCR values is a separate preview and must be reviewed by the treating clinician.': 'أي تقدير للنموذج من قيم OCR هو معاينة منفصلة ويجب أن يراجعه الطبيب المعالج.',
   'IMAGE INTAKE': 'إدخال الصورة',
   'STRUCTURED REPORT · PDF': 'تقرير منظم · PDF',
-  'AURA Sepsis AI - Comprehensive Clinical Decision Support Summary': 'AURA Sepsis AI - ملخص شامل لدعم القرار السريري',
+  'MediMind AI - Comprehensive Clinical Decision Support Summary': 'MediMind AI - ملخص شامل لدعم القرار البحثي',
   'Uncalibrated model score; do not interpret as a calibrated individual disease probability.': 'درجة نموذج غير معايرة؛ لا تفسرها على أنها احتمال فردي معاير للإصابة بالمرض.',
   'This is exploratory disagreement among cross-validation fold models, not a calibrated statistical confidence interval or a clinically validated probability interval.': 'هذا تباين استكشافي بين نماذج طيات التحقق المتقاطع، وليس فاصل ثقة إحصائيًا معايرًا أو نطاق احتمال تم التحقق منه سريريًا.',
   'For clinician review only. This model output is not a diagnosis, is not a treatment recommendation, and must not replace clinical judgment or local protocols. The model and thresholds have not been clinically validated.': 'لمراجعة الطبيب فقط. ناتج هذا النموذج ليس تشخيصًا ولا توصية علاجية، ويجب ألا يحل محل الحكم السريري أو البروتوكولات المحلية. لم يتم التحقق السريري من النموذج أو حدوده.',
@@ -1070,9 +1071,9 @@ function App() {
     <>
       <div className={`dashboard-shell${language === 'ar' ? ' dashboard-arabic' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'} lang={language}>
         <header className="topbar">
-          <a className="brand" href="#dashboard" aria-label={t('AURA Sepsis AI dashboard')}>
+          <a className="brand" href="#dashboard" aria-label={t('MediMind AI dashboard')}>
             <span className="brand-mark"><HeartPulse size={23} strokeWidth={2.2} /></span>
-            <span className="brand-copy"><strong>AURA <span>Sepsis AI</span></strong><small>{t('Clinical decision support')}</small></span>
+            <span className="brand-copy"><strong>MediMind <span>AI</span></strong><small>{t('Clinical decision support')}</small></span>
           </a>
           <div className="topbar-actions">
             {patientRecord && <div className="dashboard-patient-context"><UserRound size={15} /><span>{patientRecord.name} · {t('Bed')} {patientRecord.bed_number}</span><button type="button" onClick={() => navigate('/patients')}><ArrowLeft size={15} /> {t('Back to Patients Directory')}</button></div>}
@@ -1254,7 +1255,7 @@ function App() {
           <section className="panel image-panel" aria-labelledby="image-title">
             <div className="panel-heading">
               <div className="section-index section-index-blue">04</div>
-              <div className="panel-heading-copy"><div className="eyebrow">{t('04 · IMAGE INTAKE')}</div><h2 id="image-title">{t('Medical image preview')}</h2><p>{t('Upload a supported image for file validation and preview.')}</p></div>
+              <div className="panel-heading-copy"><div className="eyebrow">{t('04 · IMAGE INTAKE')}</div><h2 id="image-title">{t('Medical image preview')}</h2><p>{t('Upload a supported image for file validation and preview.')}</p><Link className="image-status-link" to="/research">{t('Use and validation status')}</Link></div>
             </div>
             <div className="image-grid">
               <div>
@@ -1294,8 +1295,8 @@ function App() {
           </section>
 
           <footer className="page-footer">
-            <span className="footer-brand">AURA <b>SEPSIS AI</b></span>
-            <span className="provenance-badge" role="note"><ShieldCheck size={15} />{t(provenanceNotice)}</span>
+            <span className="footer-brand">MEDIMIND <b>AI</b></span>
+            <Link className="provenance-link" to="/research"><ShieldCheck size={15} />{t('Use and validation status')}</Link>
           </footer>
         </main>
       </div>
@@ -1329,7 +1330,7 @@ function App() {
       <section className="print-report" aria-label={pt('Printable patient assessment report')} dir={printLanguage === 'ar' ? 'rtl' : 'ltr'} lang={printLanguage}>
         {printRequest?.kind === 'cds' && fullReport ? (
           <>
-            <header className="print-header"><div className="print-brand"><HeartPulse size={24} /> AURA Sepsis AI</div><span>{pt('Clinical decision support report')}</span></header>
+            <header className="print-header"><div className="print-brand"><HeartPulse size={24} /> MediMind AI</div><span>{pt('Clinical decision support report')}</span></header>
             <h1>{pt('Sepsis risk assessment')}</h1>
             <p className="print-date">{pt('Generated')} {new Date(fullReport.generated_at).toLocaleString(printLanguage === 'ar' ? 'ar' : 'en')}</p>
             <div className="print-result"><span>{pt('Model score')}</span><strong>{(fullReport.sepsis_assessment.model_probability * 100).toFixed(1)}%</strong><b>{pt(fullReport.sepsis_assessment.risk_level)}</b></div>
@@ -1345,7 +1346,7 @@ function App() {
           </>
         ) : printRequest?.kind === 'patient' && fullReport ? (
           <>
-            <header className="print-header"><div className="print-brand"><HeartPulse size={24} /> AURA Sepsis AI</div><span>{pt('Patient report')}</span></header>
+            <header className="print-header"><div className="print-brand"><HeartPulse size={24} /> MediMind AI</div><span>{pt('Patient report')}</span></header>
             <h1>{pt('Patient report')}</h1>
             <p className="print-date">{pt('Generated')} {new Date(fullReport.generated_at).toLocaleString(printLanguage === 'ar' ? 'ar' : 'en')}</p>
             <h2>{pt('Patient summary & admission context')}</h2>
@@ -1378,7 +1379,7 @@ function App() {
           </>
         ) : (
           <>
-            <header className="print-header"><div className="print-brand"><HeartPulse size={24} /> AURA Sepsis AI</div><span>{pt('CLINICAL DECISION SUPPORT REPORT')}</span></header>
+            <header className="print-header"><div className="print-brand"><HeartPulse size={24} /> MediMind AI</div><span>{pt('CLINICAL DECISION SUPPORT REPORT')}</span></header>
             <h1>{pt('Sepsis risk assessment')}</h1>
             <p className="print-date">{pt('Generated')} {new Date().toLocaleString(printLanguage === 'ar' ? 'ar' : 'en')}</p>
             <div className="print-result"><span>{pt('Estimated probability')}</span><strong>{(probability * 100).toFixed(1)}%</strong><b>{prediction ? pt(riskLevel) : pt('No assessment')}</b></div>

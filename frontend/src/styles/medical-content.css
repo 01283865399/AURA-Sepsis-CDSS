@@ -1,0 +1,45 @@
+.medical-content-summary {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-soft);
+}
+
+.medical-content-summary h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+}
+
+.medical-content-summary p,
+.medical-content-summary li {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.medical-content-summary article + article {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.medical-content-summary article > strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+}
+
+.medical-content-summary ul {
+  display: grid;
+  gap: 3px;
+  margin: 6px 0 0;
+  padding-inline-start: 18px;
+}
+
+.medical-content-summary a {
+  color: var(--teal-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

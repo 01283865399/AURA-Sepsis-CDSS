@@ -27,10 +27,27 @@ data/*.db
 data/*.db-*
 
 # Datasets & Heavy Training Data (Excluded from production)
-data/
+data/*
 data/chest_xray/
 *.zip
 *.tar.gz
+
+# Source code and reviewed schemas are versioned; downloaded/generated corpora are not.
+!data/medical_content/
+!data/medical_content/**/
+!data/medical_content/*.py
+!data/medical_content/**/*.py
+!data/medical_content/**/*.json
+data/medical_content/raw/
+data/medical_content/processed/
+!data/medical_content/raw/
+data/medical_content/raw/**/*
+!data/medical_content/raw/**/
+!data/medical_content/raw/**/.gitkeep
+!data/medical_content/processed/
+data/medical_content/processed/**/*
+!data/medical_content/processed/**/
+!data/medical_content/processed/**/.gitkeep
 
 # AI Training Scripts & Unnecessary Model Artifacts
 backend/train_sepsis.py

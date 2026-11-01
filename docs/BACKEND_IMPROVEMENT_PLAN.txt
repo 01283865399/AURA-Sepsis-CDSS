@@ -1,0 +1,194 @@
+Backend Improvement Plan for AURA
+=================================
+
+1. Purpose
+----------
+This document outlines how to improve the backend so the AURA system can become more reliable, medically safer, and closer to clinical-readiness standards.
+
+The backend is the foundation of trust. Even if the frontend looks excellent, the system cannot be accepted for medical or clinical use unless the backend proves robust data handling, model reliability, and safety controls.
+
+2. Current backend status
+-------------------------
+The current backend includes:
+- FastAPI services for research models and prediction endpoints
+- routes for symptoms, diabetes, heart, kidney, radiography, and other research datasets
+- legacy clinical endpoints for sepsis and patient workflows
+- local SQLite persistence for clinical history and some study artifacts
+- model inference endpoints that return rankings and context
+
+This is a solid research prototype baseline, but it still lacks many requirements for reliable clinical decision support.
+
+3. Main backend weaknesses
+---------------------------
+A. Weak clinical validation pathway
+- model output is exposed without a formal clinical evaluation gate
+- no clear clinician review threshold or risk alerting workflow
+- outputs may look confident even when model uncertainty is high
+
+B. Inconsistent input validation
+- some endpoints accept raw strings and free-form text without strict schema controls
+- missing or malformed data can create silent model errors
+- certain fields are optional or partially structured, which increases unpredictability
+
+C. Limited security and privacy controls
+- no clear role-based access control for medical data
+- lack of audit trail for who accessed what data and when
+- no formal encryption controls documented for medical data at rest or in transit
+- risk concerns if patient data or identifiable data are used in future
+
+D. No operational monitoring
+- no structured model health checks
+- no drift monitoring benchmarks
+- no alerts for degraded performance or abnormal outputs
+- no logs tied to patient safety or failed inference events
+
+E. Model management gaps
+- no centralized registry with model versioning, dataset version, and validation metrics
+- no controlled model rollout process
+- no reproducibility record for training and inference versions
+
+F. Insufficient explainability and calibration
+- prediction probabilities and top-k outputs must be calibrated, not only ranked
+- explainability should be available for clinicians to review why the model chose a result
+- confidence should be visibly separated from diagnosis
+
+4. Required backend improvements
+--------------------------------
+A. Strict input schema and validation
+- Define a single validation layer for all endpoints
+- Reject unsafe or ambiguous input formats before inference
+- Standardize units and field names across endpoints
+- Return consistent error codes and human-readable messages
+- Support required metadata like timestamp, patient context, and clinician identity in secure deployments
+
+B. Clinical safety guardrails
+- Implement risk triage: if confidence is low or thresholds are crossed, do not present the output as definitive
+- Add a medical disclaimer in response payloads and logs
+- Include prediction uncertainty and confidence intervals where possible
+- Flag cases requiring physician review before a result is used operationally
+
+C. Model versioning and registry
+- Each model should have:
+  - model name
+  - version hash
+  - trained dataset version
+  - validation metrics
+  - approval status
+  - deployment environment
+- Store metadata in a registry table or configuration file
+- Ensure every inference response contains the model version used
+
+D. Data governance and security
+- Encrypt sensitive data storage and transmission in production
+- Remove or mask personally identifiable data from logs
+- Restrict access by user role and organization
+- Define retention policies for patient, inferential, and audit records
+- Add consent and governance policy requirements before any real-world use
+
+E. Observability and quality controls
+- Add health checks for all services and models
+- Log input size, model version, output status, timing, and error reason
+- Monitor latency, failure rate, and drift over time
+- Create dashboards for inference quality and operational stability
+
+F. Testing and validation
+- Unit tests for each endpoint and schema
+- Integration tests against real sample payloads
+- Golden file tests to ensure output stability for known inputs
+- Model validation tests comparing expected outputs and confidence ranges
+- Negative tests for malformed inputs and edge cases
+
+G. Explainability and transparency
+- For tabular models: feature importance output
+- For image models: saliency maps or attention overlay where available
+- Return evidence summary for each prediction, not only a score
+- Separate "model signal" from "clinical conclusion"
+
+H. Audit logs and traceability
+- Every prediction request should be attributable to:
+  - timestamp
+  - endpoint
+  - model version
+  - user or clinician ID (if applicable)
+  - environment
+  - result summary
+- Keep immutable logs for investigation, review, and compliance
+
+5. High-priority recommendations
+-------------------------------
+1. Introduce a shared API response schema
+   - status
+   - result
+   - confidence
+   - uncertainty
+   - model_version
+   - warnings
+   - requires_clinician_review
+
+2. Add threshold-based clinical risk handling
+   - low confidence -> warning only
+   - moderate confidence -> secondary review
+   - high confidence -> support but not diagnosis
+
+3. Add inference logging for every call
+   - not only exceptions but also successful calls
+
+4. Require model validation before deployment
+   - threshold for AUC, F1, calibration, recall on critical groups
+
+5. Add a staging environment
+   - test models before production deployment
+   - compare old and new outputs on a fixed benchmark dataset
+
+6. Add a safe failover behavior
+   - if a dependent service fails, return a controlled error with explanation
+   - do not silently produce pseudo-results
+
+7. Separate research endpoints from production endpoints
+   - research-only routes should be clearly labeled
+   - clinical endpoints should be versioned and restricted
+
+8. Enforce de-identification for any future production data
+   - remove direct identifiers before storage or analytics
+
+9. Standardize docstrings and endpoint contract docs
+   - each route should document input, output, assumptions, and limitations
+
+10. Build a model and data governance checklist
+    - before approval for any clinical deployment
+
+6. Final assessment
+-------------------
+The backend foundation is promising and already suitable for a research platform. However, for medical reliance, it must move from a demonstration layer to a governed, auditable, validated inference system.
+
+The biggest improvements needed are:
+- reliable validation
+- model governance
+- calibration and explainability
+- security and auditability
+- clinical safety guardrails
+
+Without these upgrades, the backend may produce useful research outputs, but it should not be treated as a clinically dependable system.
+
+7. Medical content foundation implemented
+------------------------------------------
+The repository now contains a JSON content package, a loader, integrity checks,
+an exact-match service, and the coverage endpoint
+GET /api/v1/medical-content/coverage. Model responses preserve the original
+condition/probability predictions and add a separate medical_content list.
+Only records marked published and clinically_reviewed with an HTTPS source,
+reviewer, and review date are returned as medical information. An unmatched or
+unreviewed model label is explicitly reported as having no reviewed content.
+The model probability is never used as a clinical urgency score, and an
+unmatched emergency-sign lookup is never represented as ruling out an emergency.
+The results view surfaces this separate content status and links source URLs
+only when a reviewed record is present. Prediction labels remain unchanged.
+
+This is infrastructure, not the complete content corpus. The current checked-in
+condition, symptom, specialist, emergency-sign, medication, lab, and guideline
+collections are empty pending sourced authoring and qualified clinical review.
+Run `python -m scripts.validate_medical_content` from the repository root to
+see the current counts and deficits. The attachment supplied for this work
+ends at phase 10 despite referring to 15 phases; no missing phases or clinical
+facts were invented. This project remains research-only and is not ready for
+clinical reliance or medical-device approval.

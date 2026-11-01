@@ -1,0 +1,123 @@
+AURA Medical Data Acquisition Pipeline
+======================================
+
+Purpose
+-------
+Acquire public or user-authorized source artifacts, retain origin/version/
+retrieval/checksum/license metadata, and create draft-only normalized extracts.
+The pipeline does not invent missing facts, translate medical content, grant
+reuse rights, approve clinical content, or publish records to the live
+medical_content service.
+
+Run
+---
+From the repository root, using the project Python environment:
+
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --list-sources
+
+Download the public ontology releases:
+
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --sources disease_ontology,hpo
+
+Other sources require explicit bounded searches/codes, e.g.:
+
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --sources medlineplus --medlineplus-codes E11.9
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --sources openfda --openfda-search 'openfda.generic_name:metformin' --max-results 100
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --sources rxnorm --rxnorm-names metformin --rxcuis 6809
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --sources mesh --mesh-terms diabetes
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --sources pubmed --pubmed-query 'type 2 diabetes guideline' --max-results 100
+
+Use NCBI_API_KEY and NCBI_EMAIL for PubMed when available. OPENFDA_API_KEY is
+optional. Secrets are read from environment variables and excluded from saved
+request URLs. Do not put API keys in command-line arguments or commit them.
+Only pass public search terms and coding identifiers; never send patient names,
+records, contact details, or other identifying/clinical data to these services.
+
+WHO ICD-10, LOINC, and SNOMED CT
+-------------------------------
+These sources are not fetched by bypassing access or license controls. Obtain
+the official ICD-10 file, LOINC archive, or SNOMED CT RF2 distribution under
+the applicable terms, then set:
+
+    $env:AURA_WHO_ICD10_FILE = 'C:\path\to\authorized\WHO-file'
+    $env:AURA_LOINC_ARCHIVE = 'C:\path\to\licensed\loinc.zip'
+    $env:AURA_SNOMED_RF2_FILE = 'C:\path\to\authorized\snomed-rf2.zip'
+
+Then select `icd10`, `loinc`, or `snomed`. Local archives are copied with
+streaming checksums; the original machine path is not recorded. SNOMED CT
+archives remain in the access-controlled raw area.
+
+MedQuAD rights gate
+-------------------
+GitHub identifies the MedQuAD repository license as NOASSERTION. The default
+download is blocked. Only after rights review, an explicit research copy can
+be acquired with `--allow-unverified-license`; it is marked as a rights-review
+copy and is never extracted, transformed, or integrated automatically.
+
+Layout and governance
+--------------------
+- `data/medical_content/raw/<source>/`: original response/archive plus a
+  `.metadata.json` sidecar with canonical source URL, request/final URL,
+  retrieval time, release, content type, byte count, SHA-256, and license note.
+- `data/medical_content/processed/`: source-specific draft extracts and the
+  latest acquisition report. Generated corpora are git-ignored.
+- `data/medical_content/processed/final/`: exact-identifier merged, cleaned
+  review drafts; this folder is not consumed by the live content service.
+- `scripts/medical_data/downloaders/`: one client per source.
+- `scripts/medical_data/processors/`: exact-ID merging, source-specific
+  normalization, translation gate, and provenance checks.
+
+Final review drafts
+-------------------
+After downloading the Disease Ontology and HPO sources, refresh their
+source-specific candidates and generate the review drafts:
+
+    .\venv\Scripts\python.exe -m scripts.medical_data.orchestrator --process-only
+    .\venv\Scripts\python.exe -m scripts.medical_data.processors.finalize
+
+The finalizer writes `conditions.json`, `phenotype_concepts.json`,
+`icd10cm_condition_index.json`, and `finalization_report.json` under
+`data/medical_content/processed/final/`. It also reads
+`hpo_candidates.json` when that legacy filename exists; otherwise it reads the
+current `hpo_phenotype_concepts.json`.
+
+Disease Ontology `ICD10CM:` cross-references are retained as
+`source_asserted_unverified`; this is not an independently validated WHO
+ICD-10 import. MedlinePlus links are attached only when the request URL
+contains the exact same ICD-10-CM code and coding-system OID. HPO is a
+phenotype ontology, so its terms are explicitly marked as phenotype concepts,
+not approved symptoms. HPO/DO links are created only from explicit DOID
+cross-references. No labels are translated and no name-similarity matching is
+performed. All final files remain draft-only and are not live catalog inputs.
+
+Normalized records retain source text and remain `draft` / `unreviewed`.
+Disease Ontology terms are not complete disease summaries; HPO phenotype
+concepts are not asserted to be symptoms; MeSH descriptors are not diagnoses;
+LOINC terms are not reference intervals; RxNav interactions are not treatment
+recommendations; and FDA-submitted labels are not verified prescribing advice.
+PubMed citation metadata may be retained, but article rights remain item-level.
+In the current run, the RxNav drug-interaction endpoint returned HTTP 404.
+RxNorm terminology search succeeded; no drug-interaction data is fabricated.
+The acquisition report records a per-source error and the command exits non-zero
+for partial runs so this state cannot be mistaken for a complete acquisition.
+
+Before any record can enter the live `data/medical_content` collections, a
+qualified reviewer must verify its precise claims, source link, applicable
+reuse license, Arabic/English rendering, target population, and local context.
+`scripts/validate_medical_content.py` reports live-corpus deficits. Successful
+downloads and a clean provenance report do not indicate clinical completeness,
+validation, or regulatory approval.
+
+Source documentation
+--------------------
+- MedlinePlus Connect: https://medlineplus.gov/medlineplus-connect/
+- Disease Ontology downloads: https://disease-ontology.org/downloads/
+- Human Phenotype Ontology: https://hpo.jax.org/
+- WHO classification information: https://www.who.int/standards/classifications/classification-of-diseases
+- openFDA drug labels: https://open.fda.gov/apis/drug/label/
+- RxNorm / RxNav API: https://rxnav.nlm.nih.gov/RxNormAPIs.html
+- LOINC downloads and terms: https://loinc.org/downloads/
+- MedQuAD repository and unresolved license: https://github.com/abachaa/MedQuAD
+- SNOMED CT: https://www.snomed.org/
+- MeSH: https://meshb.nlm.nih.gov/
+- PubMed: https://pubmed.ncbi.nlm.nih.gov/

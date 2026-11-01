@@ -1,0 +1,1 @@
+"""Versioned disease inference endpoints."""

@@ -13,9 +13,9 @@ export default function HomePage() {
       <div className="landing-orb landing-orb-one" />
       <div className="landing-orb landing-orb-two" />
       <header className="landing-header">
-        <a className="landing-brand" href="/" aria-label="AURA Sepsis AI home">
+        <a className="landing-brand" href="/" aria-label="MediMind AI home">
           <span className="landing-brand-icon"><HeartPulse size={23} /></span>
-          <span>AURA <b>SEPSIS AI</b></span>
+          <span>MEDIMIND <b>AI</b></span>
         </a>
         <span className="landing-status"><span /> Clinical decision support workspace</span>
       </header>
@@ -43,7 +43,7 @@ export default function HomePage() {
           <div className="visual-line visual-line-two" />
         </div>
       </section>
-      <footer className="landing-footer"><span>Built for careful clinical review</span><span>Patient storage must be configured for development</span></footer>
+      <footer className="landing-footer"><span>MediMind AI · Research decision support</span><span>Patient storage must be configured for development</span></footer>
       {showAddPatient && <PatientFormModal onClose={() => setShowAddPatient(false)} onCreated={(patient) => navigate(`/patients/${patient.patient_id}`)} />}
     </main>
   );

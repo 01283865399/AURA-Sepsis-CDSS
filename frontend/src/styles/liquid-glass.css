@@ -1,0 +1,241 @@
+@layer base {
+  :root {
+    color-scheme: light;
+    --color-canvas: 235 242 247;
+    --color-surface: 255 255 255;
+    --color-ink: 18 37 51;
+    --color-muted: 91 116 130;
+    --color-line: 173 205 218;
+    --color-primary: 48 164 174;
+    --glass-bg: rgba(255, 255, 255, .82);
+    --glass-bg-strong: rgba(255, 255, 255, .94);
+    --glass-border: rgba(151, 185, 199, .34);
+    --glass-highlight: rgba(255, 255, 255, .82);
+    --glass-shadow: 0 14px 36px rgba(37, 78, 99, .09);
+    --glass-blur: 16px;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --color-canvas: 6 18 29;
+    --color-surface: 14 35 50;
+    --color-ink: 232 245 248;
+    --color-muted: 148 177 188;
+    --color-line: 160 209 220;
+    --color-primary: 118 214 210;
+    --glass-bg: rgba(15, 36, 51, .88);
+    --glass-bg-strong: rgba(18, 46, 63, .96);
+    --glass-border: rgba(181, 222, 230, .2);
+    --glass-highlight: rgba(255, 255, 255, .12);
+    --glass-shadow: 0 18px 48px rgba(0, 7, 14, .22);
+  }
+
+  html, body, #root { min-height: 100%; }
+  body {
+    background: rgb(var(--color-canvas));
+    color: rgb(var(--color-ink));
+  }
+  ::selection { background: rgba(var(--color-primary), .3); color: rgb(var(--color-ink)); }
+}
+
+@keyframes mesh-drift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  100% { transform: translate3d(2%, 1%, 0) scale(1.05); }
+}
+
+@layer components {
+  .app-shell, .medical-landing, .directory-page {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(116, 196, 220, .12), transparent 30rem),
+      radial-gradient(circle at 90% 64%, rgba(118, 214, 210, .09), transparent 32rem),
+      rgb(var(--color-canvas));
+  }
+  .app-shell::before, .medical-landing::before, .directory-page::before {
+    content: '';
+    position: fixed;
+    z-index: -1;
+    inset: -18%;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 22% 30%, rgba(117, 204, 229, .18), transparent 28%),
+      radial-gradient(ellipse at 75% 20%, rgba(148, 168, 238, .14), transparent 26%),
+      radial-gradient(ellipse at 64% 82%, rgba(118, 214, 210, .13), transparent 30%);
+    filter: blur(54px);
+    animation: mesh-drift 28s ease-in-out infinite alternate;
+  }
+  .spline-site-backdrop { opacity: .08 !important; filter: saturate(.5) blur(.2px); }
+  .sidebar, .topbar, .app-footer, .directory-header, .directory-footer {
+    border-color: var(--glass-border) !important;
+    background: var(--glass-bg) !important;
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 12px 40px rgba(0, 15, 25, .08);
+    backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+  }
+  .sidebar { border-radius: 0 28px 28px 0; }
+  .topbar { margin: 14px 18px 0; border: 1px solid var(--glass-border) !important; border-radius: 24px; }
+  .app-footer { margin: 18px; border: 1px solid var(--glass-border); border-radius: 20px; }
+  .panel, .glass, .glass-strong, .model-card, .metric-card, .chart-panel,
+  .assessment-panel, .result-panel, .result-placeholder, .unavailable-panel,
+  .resource-library, .follow-up-report, .about-panel,
+  .patient-card, .directory-empty {
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 18px !important;
+    background: var(--glass-bg) !important;
+    box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow) !important;
+    backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+    transition: transform 250ms ease-out, border-color 250ms ease-out, box-shadow 250ms ease-out;
+  }
+  .panel:hover, .model-card:hover, .patient-card:hover, .medical-highlight-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--color-primary), .52) !important;
+  }
+  .button, .button-primary, .button-secondary, .medical-button, .directory-primary-button,
+  .directory-secondary-button, .run-button, .icon-button, .portfolio-pill-button {
+    border-radius: 16px !important;
+    transition: transform 250ms ease-out, background 250ms ease-out, border-color 250ms ease-out;
+  }
+  .button:hover, .medical-button:hover, .directory-primary-button:hover, .directory-secondary-button:hover, .run-button:hover { transform: translateY(-2px); }
+  .button-primary, .medical-button-primary, .directory-primary-button, .run-button {
+    background: linear-gradient(135deg, #93e8e2, #4fb8c4) !important;
+    color: #06202b !important;
+    border: 1px solid rgba(255,255,255,.62) !important;
+    box-shadow: 0 8px 20px rgba(35, 136, 151, .16), inset 0 1px rgba(255,255,255,.62);
+  }
+  .button-secondary, .medical-button-secondary, .directory-secondary-button {
+    background: var(--glass-bg) !important;
+    color: rgb(var(--color-ink)) !important;
+    border: 1px solid var(--glass-border) !important;
+  }
+  .icon-button, .directory-refresh {
+    border: 1px solid var(--glass-border) !important;
+    background: var(--glass-bg) !important;
+    color: rgb(var(--color-ink)) !important;
+    box-shadow: inset 0 1px var(--glass-highlight);
+  }
+  .side-link { border-radius: 16px !important; }
+  .side-link-active { background: rgba(var(--color-primary), .16) !important; color: rgb(var(--color-primary)) !important; border-color: rgba(var(--color-primary), .36) !important; box-shadow: inset 0 1px rgba(255,255,255,.18) !important; }
+  .form-field input, .form-field select, .form-field textarea, .select-filter select,
+  .patient-modal input, .patient-modal select, .search-box input {
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 16px !important;
+    background: rgba(var(--color-canvas), .28) !important;
+    color: rgb(var(--color-ink)) !important;
+    box-shadow: inset 0 1px rgba(255,255,255,.12);
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus,
+  .patient-modal input:focus, .patient-modal select:focus, .search-box input:focus {
+    outline: none !important;
+    border-color: rgb(var(--color-primary)) !important;
+    box-shadow: 0 0 0 4px rgba(var(--color-primary), .14) !important;
+  }
+  .connection-pill, .badge, .status-pill, .medical-eyebrow, .eyebrow {
+    border-radius: 999px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* Final theme bridge: these selectors intentionally live outside @layer so
+   they override legacy component CSS without changing component behavior. */
+:root[data-theme='light'] body,
+:root[data-theme='light'] .app-shell {
+  --canvas: #edf4f7;
+  --surface: rgba(255,255,255,.88);
+  --surface-soft: #f4f9fb;
+  --ink: #122b3b;
+  --muted: #5b7482;
+  --line: rgba(131,171,188,.3);
+  --primary: #30a4ae;
+  --teal: #208b98;
+  background: #edf4f7 !important;
+  color: #122b3b;
+}
+:root[data-theme='light'] .app-shell {
+  background-image:
+    radial-gradient(circle at 78% -10%, rgba(84, 166, 192, .16), transparent 34rem),
+    linear-gradient(135deg, #f3f8fa, #e6f0f4) !important;
+}
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] .app-shell {
+  --canvas: #06121d;
+  --surface: rgba(14,35,50,.92);
+  --surface-soft: #102b3c;
+  --ink: #e8f5f7;
+  --muted: #94b1bc;
+  --line: rgba(181,222,230,.18);
+  --primary: #76d6d2;
+  --teal: #76d6d2;
+  background: #06121d !important;
+  color: #e8f5f7;
+}
+:root[data-theme='dark'] .app-shell {
+  background-image:
+    radial-gradient(circle at 78% -10%, rgba(80, 145, 178, .14), transparent 34rem),
+    linear-gradient(135deg, #06121d, #0b2333) !important;
+}
+.workspace-column { background: transparent !important; }
+.spline-site-backdrop { opacity: .035 !important; filter: saturate(.25) blur(2px) !important; }
+:root[data-theme='light'] .sidebar,
+:root[data-theme='light'] .topbar,
+:root[data-theme='light'] .app-footer,
+:root[data-theme='light'] .panel,
+:root[data-theme='light'] .glass,
+:root[data-theme='light'] .glass-strong {
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(131, 171, 188, .3) !important;
+  color: #122b3b;
+}
+:root[data-theme='dark'] .sidebar,
+:root[data-theme='dark'] .topbar,
+:root[data-theme='dark'] .app-footer,
+:root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .glass,
+:root[data-theme='dark'] .glass-strong {
+  background: rgba(14, 35, 50, .92) !important;
+  border-color: rgba(181, 222, 230, .18) !important;
+  color: #e8f5f7;
+}
+.sidebar, .topbar, .app-footer, .panel, .glass, .glass-strong {
+  backdrop-filter: blur(12px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 12px 32px rgba(0, 15, 25, .08) !important;
+}
+
+/* The landing page uses its own dark editorial surfaces. Keep the global
+   glass bridge from applying a light surface over light text. */
+.medical-landing .medical-highlight-card {
+  background: rgba(31, 27, 28, .76) !important;
+  background-color: #1f1b1c !important;
+  background-image: none !important;
+  border-color: rgba(255, 242, 232, .13) !important;
+  color: #f3ece7 !important;
+}
+.medical-landing .medical-highlight-card h2 {
+  color: #f3ece7 !important;
+}
+.medical-landing .medical-highlight-card p {
+  color: #b6aaa4 !important;
+}
+
+/* Chat route owns the full dark canvas, including its workspace header. */
+.app-shell:has(.assistant-page) {
+  background: #05070d !important;
+}
+
+.app-shell:has(.assistant-page) .topbar {
+  background: rgba(15, 18, 27, .92) !important;
+  background-color: rgba(15, 18, 27, .92) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.1) !important;
+  color: #eef1fa !important;
+}
+
+.app-shell:has(.assistant-page) .assistant-composer .composer-toolbar > textarea {
+  color: #fdf6e2 !important;
+}
