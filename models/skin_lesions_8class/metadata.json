@@ -1,0 +1,45 @@
+{
+  "dataset": "skin_lesions_8class",
+  "architecture": "efficientnet_b0",
+  "pretrained_weights": "IMAGENET1K_V1",
+  "epochs": 5,
+  "random_seed": 42,
+  "device": "cpu",
+  "image_count": 1763,
+  "class_counts": {
+    "AK": 211,
+    "BCC": 229,
+    "BKL": 215,
+    "DF": 184,
+    "MEL": 252,
+    "NV": 261,
+    "SCC": 231,
+    "VASC": 180
+  },
+  "classes": [
+    "AK",
+    "BCC",
+    "BKL",
+    "DF",
+    "MEL",
+    "NV",
+    "SCC",
+    "VASC"
+  ],
+  "features": [
+    "RGB pixels, resized and center-cropped to 224x224"
+  ],
+  "train_rows": 1233,
+  "validation_rows": 265,
+  "test_rows": 265,
+  "accuracy": 0.8226415094339623,
+  "precision": 0.8205203422969153,
+  "recall": 0.8226415094339623,
+  "f1": 0.8177288926069892,
+  "top_k_accuracy": {
+    "1": 0.8226415094339623,
+    "3": 0.9735849056603774,
+    "5": 0.9924528301886792
+  },
+  "confusion_matrix": "efficientnet_b0_confusion_matrix.csv"
+}

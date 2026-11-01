@@ -1,0 +1,36 @@
+{
+  "dataset": "indian_liver_patient",
+  "model": "XGBoost",
+  "artifact": "xgboost.joblib",
+  "random_seed": 42,
+  "rows": 579,
+  "features": [
+    "AGE",
+    "GENDER",
+    "TB",
+    "DB",
+    "ALK",
+    "SGPT",
+    "SGOT",
+    "TP",
+    "ALB",
+    "AG"
+  ],
+  "classes": [
+    "liver_disease",
+    "no_liver_disease"
+  ],
+  "class_counts": {
+    "liver_disease": 414,
+    "no_liver_disease": 165
+  },
+  "target": "LABEL",
+  "accuracy": 0.6293103448275862,
+  "precision": 0.7044710171795823,
+  "recall": 0.6293103448275862,
+  "f1": 0.647205707491082,
+  "top_k_accuracy": {
+    "1": 0.6293103448275862
+  },
+  "confusion_matrix": "xgboost_confusion_matrix.csv"
+}

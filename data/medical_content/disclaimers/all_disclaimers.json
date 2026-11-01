@@ -1,0 +1,18 @@
+{
+  "general": {
+    "ar": "مخرجات AURA تقديرات بحثية وليست تشخيصًا أو نصيحة علاجية. لا تستخدمها لاتخاذ قرار طبي أو لتأخير الرعاية. اطلب تقييمًا من مختص مؤهل، واتصل بخدمات الطوارئ المحلية عند وجود خطر فوري.",
+    "en": "AURA outputs are research estimates, not a diagnosis or treatment advice. Do not use them to make medical decisions or delay care. Seek assessment from a qualified professional and contact local emergency services for immediate danger."
+  },
+  "research_model": {
+    "ar": "هذا النموذج بحثي وغير مثبت أو معتمد للاستخدام السريري.",
+    "en": "This model is for research and is not clinically validated or approved for clinical use."
+  },
+  "content_coverage": {
+    "ar": "قاعدة المحتوى الطبي غير مكتملة. لا تتوفر معلومات موثقة لهذه النتيجة.",
+    "en": "The medical content library is incomplete. No reviewed information is available for this result."
+  },
+  "uncalibrated_probability": {
+    "ar": "درجة النموذج ليست احتمالًا سريريًا معايرًا ولا تمثل درجة خطورة طبية.",
+    "en": "The model score is not a calibrated clinical probability and does not represent medical urgency."
+  }
+}

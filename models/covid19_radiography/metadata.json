@@ -1,0 +1,36 @@
+{
+  "dataset": "covid19_radiography",
+  "architecture": "efficientnet_b0",
+  "pretrained_weights": "IMAGENET1K_V1",
+  "epochs": 5,
+  "random_seed": 42,
+  "device": "cpu",
+  "image_count": 21165,
+  "class_counts": {
+    "COVID": 3616,
+    "Lung_Opacity": 6012,
+    "Normal": 10192,
+    "Viral Pneumonia": 1345
+  },
+  "classes": [
+    "COVID",
+    "Lung_Opacity",
+    "Normal",
+    "Viral Pneumonia"
+  ],
+  "features": [
+    "RGB pixels, resized and center-cropped to 224x224"
+  ],
+  "train_rows": 14815,
+  "validation_rows": 3175,
+  "test_rows": 3175,
+  "accuracy": 0.8570078740157481,
+  "precision": 0.8625783727071547,
+  "recall": 0.8570078740157481,
+  "f1": 0.8576229285490398,
+  "top_k_accuracy": {
+    "1": 0.8570078740157481,
+    "3": 0.998740157480315
+  },
+  "confusion_matrix": "efficientnet_b0_confusion_matrix.csv"
+}
