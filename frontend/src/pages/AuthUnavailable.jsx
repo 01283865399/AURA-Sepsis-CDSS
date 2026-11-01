@@ -44,9 +44,13 @@ export default function AuthUnavailable() {
       </div>
       <Panel className="auth-unavailable-panel">
         <span className="auth-unavailable-icon"><LockKeyhole size={24} /></span>
-        <span className="eyebrow">{isEnglish ? 'AUTHENTICATION NOT CONFIGURED' : 'المصادقة غير مهيأة'}</span>
-        <h2>{isEnglish ? 'No login service is connected' : 'لا توجد خدمة دخول متصلة'}</h2>
-        <p>{isEnglish ? 'Passwords are hashed in the backend and tokens are signed server-side.' : 'يتم تشفير كلمات المرور في الخادم وتوقيع الرموز داخله.'}</p>
+        <span className="eyebrow">{isEnglish ? 'RESEARCH ACCOUNT' : 'حساب بحثي'}</span>
+        <h2>{isEnglish
+          ? (isRegister ? 'Create an account to use the AI assistant' : 'Sign in to use the AI assistant')
+          : (isRegister ? 'أنشئ حسابًا بحثيًا لاستخدام المساعد' : 'سجّل الدخول لاستخدام المساعد')}</h2>
+        <p>{isEnglish
+          ? 'Use a new research-only password. Do not enter your Google or production account password.'
+          : 'استخدم كلمة مرور جديدة لهذا الحساب البحثي فقط، ولا تدخل كلمة مرور Google أو أي حساب آخر.'}</p>
         <form className="auth-form" onSubmit={submit}>
           <label className="form-field"><span>{isEnglish ? 'Username' : 'اسم المستخدم'}</span><input value={username} onChange={(event) => setUsername(event.target.value)} required autoComplete="username" /></label>
           <label className="form-field"><span>{isEnglish ? 'Password' : 'كلمة المرور'}</span><input type="password" minLength={isRegister ? 12 : 1} value={password} onChange={(event) => setPassword(event.target.value)} required autoComplete={isRegister ? 'new-password' : 'current-password'} /></label>
